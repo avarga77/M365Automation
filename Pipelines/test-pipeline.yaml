@@ -1,0 +1,77 @@
+trigger: none
+
+# schedules:
+# - cron: "0 0,6,12,18 * * *"
+#   displayName: "Scheduled export"
+#   branches:
+#     include:
+#     - main
+#   always: true
+
+variables:
+- template: variables.yaml
+
+resources:
+  pipelines:
+  - pipeline: M365Automation
+    source: 'Build MOF'
+    branch: main
+    trigger: none
+
+pool:
+  vmImage: windows-latest
+
+stages:
+- stage: M365DSCComplianceCheck
+  displayName: 'Microsoft365DSC compliance check'
+  dependsOn: []
+  jobs:
+  - job: CheckCompliance
+    displayName: 'Check compliance'
+    dependsOn: []
+    steps:
+    - download: M365Automation
+      displayName: 'Download Artifact'
+
+    - task: CmdLine@2
+      displayName: 'Configure WinRM'
+      inputs:
+        script: |
+          @echo on
+          call winrm invoke restore winrm/config
+          call winrm quickconfig -quiet
+          call winrm set winrm/config @{MaxEnvelopeSizekb="4096"} > null
+          call winrm get winrm/config | find /i "MaxEnvelopeSizekb"
+
+    - task: AzurePowerShell@5
+      displayName: 'Download secrets'
+      inputs:
+        ScriptType: 'FilePath'
+        ScriptPath: './DownloadSecrets.ps1'
+        ScriptArguments: '-KeyVault "${{ variables.keyVault }}"'
+        azurePowerShellVersion: 'latestVersion'
+        azureSubscription: '${{ variables.azureSubscription }}'
+        errorActionPreference: 'Stop'
+        FailOnStandardError: true
+
+    - task: AzurePowerShell@5
+      displayName: 'Prepare modules'
+      inputs:
+        ScriptType: 'FilePath'
+        ScriptPath: './DeployModules.ps1'
+        ScriptArguments: '-PackageSourceLocation "${{ variables.packageSourceLocation }}" -PATToken "$(patToken)" -BlobResourceGroup "${{ variables.blobResourceGroup }}" -BlobStorageAccount "${{ variables.blobStorageAccount }}" -BlobContainer "${{ variables.blobContainer }}"'
+        azurePowerShellVersion: 'latestVersion'
+        azureSubscription: '${{ variables.azureSubscription }}'
+        errorActionPreference: 'Stop'
+        FailOnStandardError: false
+
+    - task: PowerShell@2
+      displayName: 'Check configuration deviations'
+      inputs:
+        targetType: 'filePath'
+        filePath: '$(Pipeline.Workspace)/M365Automation/${{ variables.buildArtifactName }}/CheckDscCompliance.ps1'
+        arguments: '-UseMail:$${{ variables.useMail }} -MailTenantId "${{ variables.mailTenantId }}" -MailAppId "${{ variables.mailAppId }}" -MailAppSecret "$(mailAppSecret)" -MailFrom "${{ variables.mailFrom }}" -MailTo "${{ variables.mailTo }}" -UseTeams:$${{ variables.useTeams }} -TeamsWebhook "${{ variables.teamsWebhook }}"'
+        errorActionPreference: 'Stop'
+        failOnStderr: false
+        workingDirectory: '$(Pipeline.Workspace)/M365Automation/${{ variables.buildArtifactName }}'
+      continueOnError: true

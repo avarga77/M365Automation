@@ -1,0 +1,52 @@
+trigger:
+  branches:
+    include:
+    - refs/heads/main
+  paths:
+    include:
+    - DscResources.psd1
+
+variables:
+- template: variables.yaml
+
+pool:
+  vmImage: windows-latest
+
+stages:
+  - stage: M365DSCPrepare
+    displayName: 'Microsoft365DSC prepare'
+    jobs:
+    - job: PrepareDependencies
+      displayName: 'Prepare dependencies for the given DSC version'
+      steps:
+      - task: CmdLine@2
+        displayName: 'Configure WinRM'
+        inputs:
+          script: |
+            @echo on
+            call winrm invoke restore winrm/config
+            call winrm quickconfig -quiet
+            call winrm set winrm/config @{MaxEnvelopeSizekb="4096"} > null
+            call winrm get winrm/config | find /i "MaxEnvelopeSizekb"
+
+      - task: AzurePowerShell@5
+        displayName: 'Download secrets'
+        inputs:
+          ScriptType: 'FilePath'
+          ScriptPath: './DownloadSecrets.ps1'
+          ScriptArguments: '-KeyVault "${{ variables.keyVault }}"'
+          azurePowerShellVersion: 'latestVersion'
+          azureSubscription: '${{ variables.azureSubscription }}'
+          errorActionPreference: 'Stop'
+          FailOnStandardError: true
+
+      - task: AzurePowerShell@5
+        displayName: 'Prepare and cache modules'
+        inputs:
+          ScriptType: 'FilePath'
+          ScriptPath: './CacheModules.ps1'
+          ScriptArguments: '-PackageSourceLocation "${{ variables.packageSourceLocation }}" -PATToken "$(patToken)" -BlobResourceGroup "${{ variables.blobResourceGroup }}" -BlobStorageAccount "${{ variables.blobStorageAccount }}" -BlobContainer "${{ variables.blobContainer }}"'
+          azurePowerShellVersion: 'latestVersion'
+          azureSubscription: '${{ variables.azureSubscription }}'
+          errorActionPreference: 'Stop'
+          FailOnStandardError: true
