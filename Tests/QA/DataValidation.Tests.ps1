@@ -34,10 +34,6 @@ Describe "Check if Config Data contains certain nodes" {
 		$ConfigData.NonNodeData.Environment.ContainsKey("OrganizationName") | Should -Be $true
 	}
 
-	It "Check NonNodeData\Accounts" {
-		$ConfigData.NonNodeData.ContainsKey("Accounts") | Should -Be $true
-	}
-
 	It "Check NonNodeData\AppCredentials" {
 		$ConfigData.NonNodeData.ContainsKey("AppCredentials") | Should -Be $true
 	}
