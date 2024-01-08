@@ -33,6 +33,7 @@ $dscScriptName = "M365Configuration.ps1"
 $workingDirectory = $PSScriptRoot
 $configFileSeparator = "#"
 $level = 1
+$global:progressPreference = "SilentlyContinue"
 
 ######## START SCRIPT ########
 
@@ -198,7 +199,7 @@ foreach ($environment in $envConfig) {
     Write-Log -Message "Merging basic and environment-specific config with mandatory config" -Level $level
     $mergedConfigData = Merge-DataFile -Reference $basicAndEnvConfig -Merge $mandatoryConfig
 
-    $psdStringData += $mergedConfigData | ConvertTo-Psd
+    $psdStringData = $mergedConfigData | ConvertTo-Psd
     $psdPath = Join-Path -Path $outputPathDataFile -ChildPath "$($environment.Name).psd1"
     Set-Content -Path $psdPath -Value $psdStringData
 
@@ -214,13 +215,13 @@ foreach ($environment in $envConfig) {
             $null = M365Configuration -ConfigurationData $targetConfig -OutputPath $outputPathDataFile -ErrorVariable $err
         }
         catch {
-            Write-Log -Message "[ERROR] Error occurred during MOF compilation" -Level $level
+            Write-Log -Message "[ERROR] An error occurred during MOF compilation" -Level $level
             Write-Log -Message "Error: $($_.Exception.Message)" -Level $level
             $compileError = $true
         }
     }
     else {
-        Write-Log -Message "[ERROR] Error in compiled configuration data files" -Level $level
+        Write-Log -Message "[ERROR] There's an error in the merged configuration data files" -Level $level
         $compileError = $true
     }
     $level--
@@ -228,12 +229,10 @@ foreach ($environment in $envConfig) {
 
 Write-Log -Message " "
 Write-Log -Message "---------------------------------------------------------"
-if ($compileError)
-{
+if ($compileError) {
     Write-Log -Message " RESULT: Build script encountered errors!"
 }
-else
-{
+else {
     Write-Log -Message " RESULT: Build script completed successfully!"
 }
 Write-Log -Message "---------------------------------------------------------"

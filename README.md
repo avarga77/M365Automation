@@ -4,6 +4,8 @@ For more info, checkout [this whitepaper](https://office365dsc.azurewebsites.net
 
 # Changelog
 
+v3.1 (2024-01-08) - Bug fixes based on peer review, security enhancements for storing all kinds of passphrases
+                    in Azure KeyVault, new support functions
 v3.0 (2023-11-28) - Support for both Microsoft-hosted and self-hosted VMs, support for data file split,
                     simplifying scripts by moving functions into a separate file, possibility for public
                     or private generic module download

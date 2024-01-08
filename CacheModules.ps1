@@ -4,45 +4,46 @@
 [CmdletBinding()]
 param
 (
-	[Parameter()]
-	[AllowEmptyString()]
-	[AllowNull()]
-	[System.String]
-	$PackageSourceLocation = $null,
+    [Parameter()]
+    [AllowEmptyString()]
+    [AllowNull()]
+    [System.String]
+    $PackageSourceLocation = $null,
 
-	[Parameter()]
-	[AllowEmptyString()]
-	[AllowNull()]
-	[System.String]
-	$PATToken = $null,
+    [Parameter()]
+    [AllowEmptyString()]
+    [AllowNull()]
+    [System.String]
+    $PATToken = $null,
 
-	[Parameter(Mandatory)]
-	[System.String]
-	$BlobResourceGroup,
+    [Parameter(Mandatory)]
+    [System.String]
+    $BlobResourceGroup,
 
-	[Parameter(Mandatory)]
-	[System.String]
-	$BlobStorageAccount,
+    [Parameter(Mandatory)]
+    [System.String]
+    $BlobStorageAccount,
 
-	[Parameter(Mandatory)]
-	[System.String]
-	$BlobContainer
+    [Parameter(Mandatory)]
+    [System.String]
+    $BlobContainer
 )
 
 ######## FUNCTIONS ########
 
 try {
-	Import-Module -Name ".\SupportFunctions.psm1" -ErrorAction Stop
+    Import-Module -Name ".\SupportFunctions.psm1" -ErrorAction Stop
 }
 catch {
-	Write-Host "ERROR: Could not load library 'SupportFunctions.psm1'. $($_.Exception.Message.Trim(".")). Exiting." -ForegroundColor Red
-	exit -1
+    Write-Host "ERROR: Could not load library 'SupportFunctions.psm1'. $($_.Exception.Message.Trim(".")). Exiting." -ForegroundColor Red
+    exit -1
 }
 
 ######## SCRIPT VARIABLES ########
 
 $level = 1
 $workingDirectory = $PSScriptRoot
+$global:progressPreference = "SilentlyContinue"
 
 ######## START SCRIPT ########
 

@@ -13,7 +13,7 @@ function Write-Log {
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $indentation = "  " * $Level
-    $output = "[{0}] - {1}{2}" -f $timestamp, $indentation, $Message
+    $output = "[{0}] {1}{2}" -f $timestamp, $indentation, $Message
     Write-Host $output
 }
 
@@ -134,8 +134,7 @@ function Install-GenericModules {
     Write-Log -Message "- Repository URI         : $PackageSourceLocation" -Level $script:level
     Write-Log -Message " "
 
-    if ($PackageSourceLocation -notmatch "www.powershellgallery.com")
-    {
+    if ($PackageSourceLocation -notmatch "www.powershellgallery.com") {
         Write-Log -Message "Registering generic package feed as PSRepository" -Level $script:level
         $repositoryName = "M365DSC_Generic_Modules"
 
@@ -227,9 +226,6 @@ function Install-GenericModules {
     Write-Log -Message "Installing required generic modules" -Level $script:level
     $script:level++
 
-    $oldProgressPreference = $progressPreference
-    $progressPreference = "SilentlyContinue"
-
     foreach ($module in $genericModules) {
         Write-Log -Message "Installing module '$($module.Name) v$($module.Version.ToString())'" -Level $script:level
         $parameters = @{
@@ -254,8 +250,6 @@ function Install-GenericModules {
             Write-Log -Message "$($_.Exception.Message.Trim("."))." -Level $script:level
         }
     }
-
-    $progressPreference = $oldProgressPreference
 
     $script:level--
 
@@ -332,8 +326,7 @@ function Install-DSCModule {
     return $reqVersion
 }
 
-function Write-Psd
-{
+function Write-Psd {
     <#
         .Synopsis
         Converts an object into a string so it can be written to PSD file.
@@ -357,7 +350,7 @@ function Write-Psd
     [OutputType()]
     param
     (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory)]
         [System.Object]
         $Object,
 
@@ -370,145 +363,113 @@ function Write-Psd
         $NoIndent
     )
 
-    process
-    {
+    process {
         $indent1 = $script:Indent * $Depth
-        if (!$NoIndent)
-        {
+        if (!$NoIndent) {
             $script:Writer.Write($indent1)
         }
 
-        if ($null -eq $Object)
-        {
+        if ($null -eq $Object) {
             $script:Writer.WriteLine('$null')
             return
         }
 
         $type = $Object.GetType()
-        switch ([System.Type]::GetTypeCode($type))
-        {
-            Object
-            {
-                if ($type -eq [System.Guid] -or $type -eq [System.Version])
-                {
+        switch ([System.Type]::GetTypeCode($type)) {
+            Object {
+                if ($type -eq [System.Guid] -or $type -eq [System.Version]) {
                     $script:Writer.WriteLine("'{0}'", $Object)
                     return
                 }
-                if ($type -eq [System.Management.Automation.SwitchParameter])
-                {
-                    $script:Writer.WriteLine($(if ($Object)
-                            {
+                if ($type -eq [System.Management.Automation.SwitchParameter]) {
+                    $script:Writer.WriteLine($(if ($Object) {
                                 '$true'
                             }
-                            else
-                            {
+                            else {
                                 '$false'
                             }))
                     return
                 }
-                if ($type -eq [System.Uri])
-                {
+                if ($type -eq [System.Uri]) {
                     $script:Writer.WriteLine("'{0}'", $Object.ToString().Replace("'", "''"))
                     return
                 }
-                if ($script:Depth -and $Depth -ge $script:Depth)
-                {
+                if ($script:Depth -and $Depth -ge $script:Depth) {
                     $script:Writer.WriteLine("''''")
                     ++$script:Pruned
                     return
                 }
-                if ($Object -is [System.Collections.IDictionary])
-                {
-                    if ($Object.Count)
-                    {
+                if ($Object -is [System.Collections.IDictionary]) {
+                    if ($Object.Count) {
                         $itemNo = 0
                         $script:Writer.WriteLine('@{')
                         $indent2 = $script:Indent * ($Depth + 1)
-                        foreach ($e in $Object.GetEnumerator())
-                        {
+                        foreach ($e in $Object.GetEnumerator()) {
                             $key = $e.Key
                             $value = $e.Value
                             $keyType = $key.GetType()
-                            if ($keyType -eq [string])
-                            {
-                                if ($key -match '^\w+$' -and $key -match '^\D')
-                                {
+                            if ($keyType -eq [string]) {
+                                if ($key -match '^\w+$' -and $key -match '^\D') {
                                     $script:Writer.Write('{0}{1} = ', $indent2, $key)
                                 }
-                                else
-                                {
+                                else {
                                     $script:Writer.Write("{0}'{1}' = ", $indent2, $key.Replace("'", "''"))
                                 }
                             }
-                            elseif ($keyType -eq [int])
-                            {
+                            elseif ($keyType -eq [int]) {
                                 $script:Writer.Write('{0}{1} = ', $indent2, $key)
                             }
-                            elseif ($keyType -eq [long])
-                            {
+                            elseif ($keyType -eq [long]) {
                                 $script:Writer.Write('{0}{1}L = ', $indent2, $key)
                             }
-                            elseif ($script:Depth)
-                            {
+                            elseif ($script:Depth) {
                                 ++$script:Pruned
                                 $script:Writer.Write('{0}item__{1} = ', $indent2, ++$itemNo)
                                 $value = New-Object 'System.Collections.Generic.KeyValuePair[object, object]' $key, $value
                             }
-                            else
-                            {
+                            else {
                                 throw "Not supported key type '$($keyType.FullName)'."
                             }
                             Write-Psd -Object $value -Depth ($Depth + 1) -NoIndent
                         }
                         $script:Writer.WriteLine("$indent1}")
                     }
-                    else
-                    {
+                    else {
                         $script:Writer.WriteLine('@{}')
                     }
                     return
                 }
-                if ($Object -is [System.Collections.IEnumerable])
-                {
+                if ($Object -is [System.Collections.IEnumerable]) {
                     $script:Writer.Write('@(')
                     $empty = $true
-                    foreach ($e in $Object)
-                    {
-                        if ($empty)
-                        {
+                    foreach ($e in $Object) {
+                        if ($empty) {
                             $empty = $false
                             $script:Writer.WriteLine()
                         }
                         Write-Psd -Object $e -Depth ($Depth + 1)
                     }
-                    if ($empty)
-                    {
+                    if ($empty) {
                         $script:Writer.WriteLine(')')
                     }
-                    else
-                    {
+                    else {
                         $script:Writer.WriteLine("$indent1)" )
                     }
                     return
                 }
-                if ($Object -is [scriptblock])
-                {
+                if ($Object -is [scriptblock]) {
                     $script:Writer.WriteLine('{{{0}}}', $Object)
                     return
                 }
-                if ($Object -is [PSCustomObject] -or $script:Depth)
-                {
+                if ($Object -is [PSCustomObject] -or $script:Depth) {
                     $script:Writer.WriteLine('@{')
                     $indent2 = $script:Indent * ($Depth + 1)
-                    foreach ($e in $Object.PSObject.Properties)
-                    {
+                    foreach ($e in $Object.PSObject.Properties) {
                         $key = $e.Name
-                        if ($key -match '^\w+$' -and $key -match '^\D')
-                        {
+                        if ($key -match '^\w+$' -and $key -match '^\D') {
                             $script:Writer.Write('{0}{1} = ', $indent2, $key)
                         }
-                        else
-                        {
+                        else {
                             $script:Writer.Write("{0}'{1}' = ", $indent2, $key.Replace("'", "''"))
                         }
                         Write-Psd -Object $e.Value -Depth ($Depth + 1) -NoIndent
@@ -517,46 +478,36 @@ function Write-Psd
                     return
                 }
             }
-            String
-            {
+            String {
                 $script:Writer.WriteLine("'{0}'", $Object.Replace("'", "''"))
                 return
             }
-            Boolean
-            {
-                $script:Writer.WriteLine($(if ($Object)
-                        {
+            Boolean {
+                $script:Writer.WriteLine($(if ($Object) {
                             '$true'
                         }
-                        else
-                        {
+                        else {
                             '$false'
                         }))
                 return
             }
-            DateTime
-            {
+            DateTime {
                 $script:Writer.WriteLine("[DateTime] '{0}'", $Object.ToString('o'))
                 return
             }
-            Char
-            {
+            Char {
                 $script:Writer.WriteLine("'{0}'", $Object.Replace("'", "''"))
                 return
             }
-            DBNull
-            {
+            DBNull {
                 $script:Writer.WriteLine('$null')
                 return
             }
-            default
-            {
-                if ($type.IsEnum)
-                {
+            default {
+                if ($type.IsEnum) {
                     $script:Writer.WriteLine("'{0}'", $Object)
                 }
-                else
-                {
+                else {
                     $script:Writer.WriteLine($Object)
                 }
                 return
@@ -567,8 +518,7 @@ function Write-Psd
     }
 }
 
-function ConvertTo-Psd
-{
+function ConvertTo-Psd {
     <#
         .Synopsis
         Converts the inputted object to a hashtable in string format, which can be saved as PSD.
@@ -618,20 +568,16 @@ function ConvertTo-Psd
         $Indent
     )
 
-    begin
-    {
+    begin {
         $objects = [System.Collections.Generic.List[object]]@()
     }
 
-    process
-    {
+    process {
         $objects.Add($InputObject)
     }
 
-    end
-    {
-        trap
-        {
+    end {
+        trap {
             Invoke-TerminatingError $_
         }
 
@@ -639,27 +585,22 @@ function ConvertTo-Psd
         $script:Pruned = 0
         $script:Indent = Convert-Indent -Indent $Indent
         $script:Writer = New-Object System.IO.StringWriter
-        try
-        {
-            foreach ($object in $objects)
-            {
+        try {
+            foreach ($object in $objects) {
                 Write-Psd -Object $object
             }
             $script:Writer.ToString().TrimEnd()
-            if ($script:Pruned)
-            {
+            if ($script:Pruned) {
                 Write-Warning "ConvertTo-Psd truncated $script:Pruned objects."
             }
         }
-        finally
-        {
+        finally {
             $script:Writer = $null
         }
     }
 }
 
-function Invoke-TerminatingError
-{
+function Invoke-TerminatingError {
     <#
         .Synopsis
         Throws a terminating error.
@@ -672,7 +613,7 @@ function Invoke-TerminatingError
 
         .Parameter M
         The M parameter is the message that needs to be displayed when the error is thrown.
-      #>
+    #>
     [CmdletBinding()]
     [OutputType()]
     param
@@ -682,14 +623,12 @@ function Invoke-TerminatingError
         $M
     )
 
-    process
-    {
+    process {
         $PSCmdlet.ThrowTerminatingError((New-Object System.Management.Automation.ErrorRecord ([Exception]"$M"), $null, 0, $null))
     }
 }
 
-function Convert-Indent
-{
+function Convert-Indent {
     <#
         .Synopsis
         Converts a numbered indentation into spaces or tabs
@@ -712,11 +651,9 @@ function Convert-Indent
         $Indent
     )
 
-    process
-    {
-        switch ($Indent)
-        {
-            ''  { return '    ' }
+    process {
+        switch ($Indent) {
+            '' { return '    ' }
             '1' { return "`t" }
             '2' { return '  ' }
             '4' { return '    ' }
@@ -726,8 +663,7 @@ function Convert-Indent
     }
 }
 
-function Clone-Object
-{
+function Clone-Object {
     param
     (
         [Parameter()]
